@@ -13,14 +13,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+    setIsAuthenticated(!!token);
+
     if (!token && !isLoginPage) {
-      router.push("/login");
+      window.location.href = "/login";
     } else if (token && isLoginPage) {
-      router.push("/");
-    } else {
-      setIsAuthenticated(!!token);
+      window.location.href = "/";
     }
-  }, [pathname, router, isLoginPage]);
+  }, [pathname, isLoginPage]);
 
   if (isAuthenticated === null && !isLoginPage) {
     return <div className="h-screen w-screen flex items-center justify-center text-white">Loading...</div>;
