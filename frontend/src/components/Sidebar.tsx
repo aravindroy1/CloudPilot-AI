@@ -16,25 +16,25 @@ export default function Sidebar() {
       </div>
       
       <nav className="flex-1 px-4 space-y-2">
-        <Link href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/10 text-white font-medium border border-white/5 shadow-[0_0_15px_rgba(255,255,255,0.05)] transition-all">
+        <button onClick={() => alert("You are already on the New Deployment screen!")} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/10 text-white font-medium border border-white/5 shadow-[0_0_15px_rgba(255,255,255,0.05)] transition-all text-left">
           <MessageSquare className="w-5 h-5 text-primary-400" />
           <span>New Deployment</span>
-        </Link>
-        <Link href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+        </button>
+        <button onClick={() => alert("Dashboard functionality is coming in the next update!")} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors text-left">
           <LayoutDashboard className="w-5 h-5" />
           <span>Dashboard</span>
-        </Link>
-        <Link href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+        </button>
+        <button onClick={() => alert("Deployment History is coming in the next update!")} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors text-left">
           <History className="w-5 h-5" />
           <span>History</span>
-        </Link>
+        </button>
       </nav>
       
       <div className="p-4 border-t border-white/10">
-        <Link href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+        <button onClick={() => alert("Settings panel is coming in the next update!")} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors text-left">
           <Settings className="w-5 h-5" />
           <span>Settings</span>
-        </Link>
+        </button>
       </div>
     </div>
   );

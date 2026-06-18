@@ -14,8 +14,9 @@ export default function ChatInterface() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
+  const handleSend = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!input.trim() || isLoading) return;
     
     const userMessage = input;
     setMessages(prev => [...prev, { id: Date.now(), role: "user", content: userMessage }]);
@@ -23,7 +24,10 @@ export default function ChatInterface() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8080/api/agent/chat", {
+      // Use the current hostname to dynamically reach the API Gateway on the VM
+      const apiUrl = `http://${window.location.hostname}:8080/api/agent/chat`;
+      
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userMessage })
@@ -85,7 +89,7 @@ export default function ChatInterface() {
                 ? "bg-primary-600 text-white rounded-tr-sm" 
                 : "glass-panel text-gray-200 rounded-tl-sm"
             }`}>
-              <p className="leading-relaxed">{msg.content}</p>
+              <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
             </div>
           </div>
         ))}
@@ -105,10 +109,10 @@ export default function ChatInterface() {
 
       {/* Input Area */}
       <div className="p-6 glass border-t border-white/10 shrink-0">
-        <div className="max-w-4xl mx-auto relative group">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-600 to-purple-600 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
+        <form onSubmit={handleSend} className="max-w-4xl mx-auto relative group">
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-600 to-purple-600 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-500 pointer-events-none"></div>
           <div className="relative flex items-end gap-2 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-xl focus-within:border-primary-500/50 transition-colors">
-            <button className="p-3 text-gray-400 hover:text-white transition-colors rounded-xl hover:bg-white/5">
+            <button type="button" className="p-3 text-gray-400 hover:text-white transition-colors rounded-xl hover:bg-white/5">
               <Terminal className="w-5 h-5" />
             </button>
             <textarea
@@ -125,9 +129,9 @@ export default function ChatInterface() {
               rows={1}
             />
             <button
-              onClick={handleSend}
+              type="submit"
               disabled={!input.trim() || isLoading}
-              className="p-3 bg-primary-600 text-white rounded-xl hover:bg-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-0.5 mr-0.5"
+              className="p-3 bg-primary-600 text-white rounded-xl hover:bg-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-0.5 mr-0.5 z-20 relative"
             >
               <Send className="w-5 h-5" />
             </button>
@@ -135,7 +139,7 @@ export default function ChatInterface() {
           <p className="text-center text-xs text-gray-500 mt-3">
             CloudPilot AI can make mistakes. Consider verifying important architecture.
           </p>
-        </div>
+        </form>
       </div>
     </div>
   );
