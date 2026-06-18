@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: node:20-alpine
+    container_name: cloudpilot-frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    command: npm run dev
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+    networks:
+      - cloudpilot-net
+
+  api-gateway:
+    image: nginx:alpine
+    container_name: cloudpilot-gateway
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-service
+      - agent-service
+      - infra-service
+    networks:
+      - cloudpilot-net
+
+  auth-service:
+    image: node:20-alpine
+    container_name: cloudpilot-auth
+    working_dir: /app
+    volumes:
+      - ./services/auth-service:/app
+    command: npm start
+    environment:
+      - PORT=3001
+      - JWT_SECRET=${JWT_SECRET}
+      - COSMOS_DB_CONN_STR=${COSMOS_DB_CONN_STR}
+    networks:
+      - cloudpilot-net
+
+  agent-service:
+    image: python:3.11-slim
+    container_name: cloudpilot-agent
+    working_dir: /app
+    volumes:
+      - ./services/agent-service:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    environment:
+      - AZURE_AI_FOUNDRY_ENDPOINT=${AZURE_AI_FOUNDRY_ENDPOINT}
+      - AZURE_AI_FOUNDRY_API_KEY=${AZURE_AI_FOUNDRY_API_KEY}
+    networks:
+      - cloudpilot-net
+
+  infra-service:
+    image: golang:1.22-alpine
+    container_name: cloudpilot-infra
+    working_dir: /app
+    volumes:
+      - ./services/infra-service:/app
+    command: go run main.go
+    environment:
+      - PORT=8081
+    networks:
+      - cloudpilot-net
+
+  deploy-service:
+    image: hashicorp/terraform:latest
+    container_name: cloudpilot-deploy
+    working_dir: /app
+    volumes:
+      - ./services/deploy-service:/app
+      - ./templates:/app/templates
+    entrypoint: ["tail", "-f", "/dev/null"] # Keep alive for worker to execute commands
+    networks:
+      - cloudpilot-net
+
+  cosmos-db-emulator:
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator
+    container_name: cloudpilot-cosmos
+    ports:
+      - "8081:8081"
+      - "10251:10251"
+      - "10252:10252"
+      - "10253:10253"
+      - "10254:10254"
+    environment:
+      - AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10
+      - AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true
+    networks:
+      - cloudpilot-net
+
+networks:
+  cloudpilot-net:
+    driver: bridge
