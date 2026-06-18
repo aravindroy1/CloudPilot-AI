@@ -11,19 +11,33 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const isLoginPage = pathname === "/login";
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    setIsAuthenticated(!!token);
+  const [error, setError] = useState("");
 
-    if (!token && !isLoginPage) {
-      window.location.href = "/login";
-    } else if (token && isLoginPage) {
-      window.location.href = "/";
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem("token");
+      setIsAuthenticated(!!token);
+
+      if (!token && !isLoginPage) {
+        window.location.href = "/login";
+      } else if (token && isLoginPage) {
+        window.location.href = "/";
+      }
+    } catch (e: any) {
+      console.error("Auth error:", e);
+      setError(e.message);
+      setIsAuthenticated(false);
     }
   }, [pathname, isLoginPage]);
 
   if (isAuthenticated === null && !isLoginPage) {
-    return <div className="h-screen w-screen flex items-center justify-center text-white">Loading...</div>;
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center text-white space-y-4">
+        <div>Loading...</div>
+        {error && <div className="text-red-500 text-sm">{error}</div>}
+        <a href="/login" className="text-primary-400 hover:underline text-sm">Click here if you are not redirected automatically</a>
+      </div>
+    );
   }
 
   if (isLoginPage) {
