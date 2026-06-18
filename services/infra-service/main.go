@@ -1,9 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
+	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,16 +17,71 @@ type IntentRequest struct {
 	Action       string `json:"action"`
 	ResourceName string `json:"resource_name"`
 	Region       string `json:"region"`
+	Prompt       string `json:"prompt"`
+}
+
+type DeploymentRecord struct {
+	ID           string `json:"id"`
+	Prompt       string `json:"prompt"`
+	Target       string `json:"target"`
+	Status       string `json:"status"`
+	Date         string `json:"date"`
+	ResourceName string `json:"resource_name"`
+}
+
+// Simple JSON Database
+var dbFile = "/app/data/deployments.json"
+var dbMutex sync.Mutex
+
+func loadDeployments() []DeploymentRecord {
+	dbMutex.Lock()
+	defer dbMutex.Unlock()
+
+	var records []DeploymentRecord
+	data, err := os.ReadFile(dbFile)
+	if err == nil {
+		json.Unmarshal(data, &records)
+	}
+	return records
+}
+
+func saveDeployment(record DeploymentRecord) {
+	dbMutex.Lock()
+	defer dbMutex.Unlock()
+
+	os.MkdirAll("/app/data", 0755)
+	
+	var records []DeploymentRecord
+	data, err := os.ReadFile(dbFile)
+	if err == nil {
+		json.Unmarshal(data, &records)
+	}
+	
+	// Add new record at the beginning
+	records = append([]DeploymentRecord{record}, records...)
+	
+	newData, _ := json.MarshalIndent(records, "", "  ")
+	os.WriteFile(dbFile, newData, 0644)
+}
+
+// CORS middleware
+func corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+		
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.Next()
+	}
 }
 
 func main() {
 	r := gin.Default()
-
-	// Verify Cosmos DB Connection String
-	cosmosConn := os.Getenv("COSMOS_DB_CONN_STR")
-	if cosmosConn == "" {
-		fmt.Println("Warning: COSMOS_DB_CONN_STR not set. Operating in memory-only mode.")
-	}
+	r.Use(corsMiddleware())
 
 	r.POST("/api/infra/generate", func(c *gin.Context) {
 		var req IntentRequest
@@ -34,13 +93,64 @@ func main() {
 		// Generate Terraform based on the Action
 		tfCode := generateTerraform(req)
 
-		// Mock save to Cosmos DB
-		deploymentID := "deploy-" + req.ResourceName
+		// Create deployment ID
+		deploymentID := fmt.Sprintf("dep-%d", time.Now().Unix())
+		if req.ResourceName != "" {
+			deploymentID = "dep-" + req.ResourceName
+		}
+
+		// Write to shared templates folder for deploy-service
+		dir := filepath.Join("/app/templates", deploymentID)
+		os.MkdirAll(dir, 0755)
+		
+		err := os.WriteFile(filepath.Join(dir, "main.tf"), []byte(tfCode), 0644)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write Terraform config"})
+			return
+		}
+
+		// Save to JSON Database
+		record := DeploymentRecord{
+			ID:           deploymentID,
+			Prompt:       req.Prompt,
+			Target:       req.Provider,
+			Status:       "Running",
+			Date:         time.Now().Format("Jan 02, 15:04 PM"),
+			ResourceName: req.ResourceName,
+		}
+		saveDeployment(record)
 
 		c.JSON(http.StatusOK, gin.H{
 			"message":       "Terraform configuration generated and saved to state.",
 			"deployment_id": deploymentID,
-			"terraform":     tfCode,
+		})
+	})
+
+	r.GET("/api/infra/history", func(c *gin.Context) {
+		records := loadDeployments()
+		c.JSON(http.StatusOK, records)
+	})
+
+	r.GET("/api/infra/stats", func(c *gin.Context) {
+		records := loadDeployments()
+		
+		vms := 0
+		k8s := 0
+		dbs := 0
+		networks := 0
+		
+		for _, r := range records {
+			if r.Status == "Running" || r.Status == "Success" {
+				// Rough heuristic based on action or resource name
+				vms++ 
+			}
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"vms":      vms,
+			"k8s":      k8s,
+			"dbs":      dbs,
+			"networks": networks,
 		})
 	})
 
@@ -106,5 +216,5 @@ resource "azurerm_linux_virtual_machine" "vm" {
 		}
 	}
 	
-	return fmt.Sprintf("# Unsupported action '%s' for provider '%s'", req.Action, req.Provider)
+	return fmt.Sprintf("# Unsupported action '%s' for provider '%s'\n# To test locally, write valid Terraform here.", req.Action, req.Provider)
 }

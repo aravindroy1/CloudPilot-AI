@@ -1,5 +1,6 @@
 import os
 import json
+import httpx
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from openai import AzureOpenAI
@@ -89,12 +90,23 @@ async def chat_with_agent(req: ChatRequest):
         if message.tool_calls:
             tool_call = message.tool_calls[0]
             arguments = json.loads(tool_call.function.arguments)
+            arguments["prompt"] = req.message
             
-            # Here we would normally forward this 'arguments' JSON to the Infrastructure Service
-            return {
-                "reply": f"I have processed your request to {arguments.get('action')} in {arguments.get('provider')}.",
-                "intent": arguments
-            }
+            # Forward this 'arguments' JSON to the Infrastructure Service
+            async with httpx.AsyncClient() as http_client:
+                infra_res = await http_client.post("http://infra-service:8081/api/infra/generate", json=arguments)
+                if infra_res.status_code == 200:
+                    infra_data = infra_res.json()
+                    dep_id = infra_data.get("deployment_id", "")
+                    return {
+                        "reply": f"Success! I have processed your request. Deployment '{dep_id}' is now running Terraform on your {arguments.get('provider')} account.",
+                        "intent": arguments
+                    }
+                else:
+                    return {
+                        "reply": f"I processed the intent, but the Infrastructure Service failed to write the Terraform file. Error: {infra_res.text}",
+                        "intent": arguments
+                    }
         else:
             return {
                 "reply": message.content,
