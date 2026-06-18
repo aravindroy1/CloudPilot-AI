@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Send, Bot, User, Sparkles, Terminal } from "lucide-react";
-import { motion } from "framer-motion";
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState([
@@ -15,31 +14,50 @@ export default function ChatInterface() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
     
-    setMessages(prev => [...prev, { id: Date.now(), role: "user", content: input }]);
+    const userMessage = input;
+    setMessages(prev => [...prev, { id: Date.now(), role: "user", content: userMessage }]);
     setInput("");
     setIsLoading(true);
 
-    // Mock response for now
-    setTimeout(() => {
+    try {
+      const response = await fetch("http://localhost:8080/api/agent/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMessage })
+      });
+      
+      if (!response.ok) throw new Error("Backend error");
+      const data = await response.json();
+      
       setMessages(prev => [
         ...prev,
         {
           id: Date.now() + 1,
           role: "assistant",
-          content: "I've generated the Terraform configuration for your request. Would you like to review it before I deploy it to Azure?",
+          content: data.reply,
         }
       ]);
+    } catch (error) {
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          role: "assistant",
+          content: "Sorry, I could not reach the backend AI service. Please make sure the agent-service is running.",
+        }
+      ]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
     <div className="flex-1 flex flex-col h-screen relative z-10">
       {/* Header */}
-      <header className="h-16 border-b border-white/10 glass flex items-center px-6 justify-between">
+      <header className="h-16 border-b border-white/10 glass flex items-center px-6 justify-between shrink-0">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-primary-400" />
           <h2 className="font-semibold text-white">AI Infrastructure Architect</h2>
@@ -53,11 +71,9 @@ export default function ChatInterface() {
       {/* Chat Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
         {messages.map((msg) => (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+          <div
             key={msg.id}
-            className={`flex gap-4 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
+            className={`flex gap-4 animate-fade-in ${msg.role === "user" ? "flex-row-reverse" : ""}`}
           >
             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-lg ${
               msg.role === "user" ? "bg-primary-600" : "bg-gradient-to-br from-indigo-500 to-purple-600"
@@ -71,10 +87,10 @@ export default function ChatInterface() {
             }`}>
               <p className="leading-relaxed">{msg.content}</p>
             </div>
-          </motion.div>
+          </div>
         ))}
         {isLoading && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-4">
+          <div className="flex gap-4 animate-fade-in">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0">
               <Bot className="w-4 h-4 text-white" />
             </div>
@@ -83,12 +99,12 @@ export default function ChatInterface() {
               <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></span>
               <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></span>
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
 
       {/* Input Area */}
-      <div className="p-6 glass border-t border-white/10">
+      <div className="p-6 glass border-t border-white/10 shrink-0">
         <div className="max-w-4xl mx-auto relative group">
           <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-600 to-purple-600 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
           <div className="relative flex items-end gap-2 bg-zinc-900 border border-white/10 p-2 rounded-2xl shadow-xl focus-within:border-primary-500/50 transition-colors">
