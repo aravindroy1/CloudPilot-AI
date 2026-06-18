@@ -16,7 +16,7 @@ export default function Login() {
 
     try {
       // Hardcode the default port for local deployment
-      const response = await fetch(`http://${window.location.hostname}:8080/api/auth/login`, {
+      const response = await fetch(`/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

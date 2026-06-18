@@ -19,7 +19,7 @@ export default function Settings() {
     setStatus({ type: "", message: "" });
 
     try {
-      const response = await fetch(`http://${window.location.hostname}:8080/api/infra/settings`, {
+      const response = await fetch(`/api/infra/settings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

@@ -25,7 +25,7 @@ export default function ChatInterface() {
 
     try {
       // Use the current hostname to dynamically reach the API Gateway on the VM
-      const apiUrl = `http://${window.location.hostname}:8080/api/agent/chat`;
+      const apiUrl = `/api/agent/chat`;
       
       const response = await fetch(apiUrl, {
         method: "POST",

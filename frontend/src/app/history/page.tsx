@@ -7,7 +7,7 @@ export default function History() {
   const [deployments, setDeployments] = useState([]);
 
   useEffect(() => {
-    fetch(`http://${window.location.hostname}:8080/api/infra/history`)
+    fetch(`/api/infra/history`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {

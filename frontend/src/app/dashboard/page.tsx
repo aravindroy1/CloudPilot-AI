@@ -7,7 +7,7 @@ export default function Dashboard() {
   const [liveStats, setLiveStats] = useState({ vms: 0, k8s: 0, dbs: 0, networks: 0 });
   
   useEffect(() => {
-    fetch(`http://${window.location.hostname}:8080/api/infra/stats`)
+    fetch(`/api/infra/stats`)
       .then(res => res.json())
       .then(data => {
         if (data && typeof data.vms !== 'undefined') {
@@ -26,7 +26,7 @@ export default function Dashboard() {
 
   const [recent, setRecent] = useState([]);
   useEffect(() => {
-    fetch(`http://${window.location.hostname}:8080/api/infra/history`)
+    fetch(`/api/infra/history`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
