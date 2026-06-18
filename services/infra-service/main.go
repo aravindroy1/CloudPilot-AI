@@ -29,8 +29,16 @@ type DeploymentRecord struct {
 	ResourceName string `json:"resource_name"`
 }
 
+type SettingsRequest struct {
+	ClientID       string `json:"clientId"`
+	ClientSecret   string `json:"clientSecret"`
+	TenantID       string `json:"tenantId"`
+	SubscriptionID string `json:"subscriptionId"`
+}
+
 // Simple JSON Database
 var dbFile = "/app/data/deployments.json"
+var credFile = "/app/data/credentials.json"
 var dbMutex sync.Mutex
 
 func loadDeployments() []DeploymentRecord {
@@ -124,6 +132,24 @@ func main() {
 			"message":       "Terraform configuration generated and saved to state.",
 			"deployment_id": deploymentID,
 		})
+	})
+
+	r.POST("/api/infra/settings", func(c *gin.Context) {
+		var req SettingsRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		os.MkdirAll("/app/data", 0755)
+		data, _ := json.Marshal(req)
+		err := os.WriteFile(credFile, data, 0600) // Secure permissions
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save credentials"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Credentials saved securely"})
 	})
 
 	r.GET("/api/infra/history", func(c *gin.Context) {
