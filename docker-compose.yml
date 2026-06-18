@@ -9,7 +9,7 @@ services:
       - ./frontend:/app
     ports:
       - "3000:3000"
-    command: npm run dev
+    command: sh -c "npm install && npm run dev -- -H 0.0.0.0"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8080
     networks:
@@ -35,7 +35,7 @@ services:
     working_dir: /app
     volumes:
       - ./services/auth-service:/app
-    command: npm start
+    command: sh -c "npm install && npm start"
     environment:
       - PORT=3001
       - JWT_SECRET=${JWT_SECRET}
@@ -49,7 +49,7 @@ services:
     working_dir: /app
     volumes:
       - ./services/agent-service:/app
-    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && uvicorn main:app --host 0.0.0.0 --port 8000"
     environment:
       - AZURE_AI_FOUNDRY_ENDPOINT=${AZURE_AI_FOUNDRY_ENDPOINT}
       - AZURE_AI_FOUNDRY_API_KEY=${AZURE_AI_FOUNDRY_API_KEY}
@@ -62,7 +62,7 @@ services:
     working_dir: /app
     volumes:
       - ./services/infra-service:/app
-    command: go run main.go
+    command: sh -c "go mod download && go run main.go"
     environment:
       - PORT=8081
     networks:
