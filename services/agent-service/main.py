@@ -64,16 +64,7 @@ tools = [
 @app.post("/api/agent/chat")
 async def chat_with_agent(req: ChatRequest):
     if not os.getenv("AZURE_AI_FOUNDRY_API_KEY"):
-        # Fallback mock for testing without keys
-        return {
-            "reply": "API keys missing. Returning mock structure.",
-            "intent": {
-                "provider": "azure",
-                "action": "create_vm",
-                "resource_name": "mock-vm",
-                "region": "eastus"
-            }
-        }
+        raise HTTPException(status_code=500, detail="CRITICAL: Azure AI Foundry API Key is missing in production environment. Deployment blocked.")
 
     try:
         response = client.chat.completions.create(
