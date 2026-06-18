@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Cloud, Lock, Mail, User, ArrowRight } from "lucide-react";
 
 export default function Login() {
@@ -10,6 +10,16 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Safely check URL params for mode=signup
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('mode') === 'signup') {
+        setIsSignUp(true);
+      }
+    }
+  }, []);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +53,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-950 relative overflow-hidden">
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-600/20 rounded-full blur-[128px]"></div>
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[128px]"></div>
       </div>
@@ -59,7 +69,7 @@ export default function Login() {
           </p>
         </div>
 
-        <form onSubmit={handleAuth} className="space-y-4">
+        <form onSubmit={handleAuth} className="space-y-4 relative z-20">
           {isSignUp && (
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Full Name</label>
@@ -112,21 +122,23 @@ export default function Login() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 relative z-30"
           >
             {isLoading ? "Authenticating..." : (isSignUp ? "Create Account" : "Sign In")}
             {!isLoading && <ArrowRight className="w-4 h-4" />}
           </button>
         </form>
 
-        <div className="mt-6 pt-6 border-t border-white/10 text-center space-y-4">
-          <button 
-            type="button" 
-            onClick={() => { setIsSignUp(!isSignUp); setError(""); }}
-            className="text-sm text-primary-400 hover:text-primary-300 transition-colors"
-          >
-            {isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
-          </button>
+        <div className="mt-6 pt-6 border-t border-white/10 text-center space-y-4 relative z-20">
+          {isSignUp ? (
+             <a href="/login" className="block text-sm text-primary-400 hover:text-primary-300 transition-colors">
+               Already have an account? Sign in
+             </a>
+          ) : (
+             <a href="/login?mode=signup" className="block text-sm text-primary-400 hover:text-primary-300 transition-colors">
+               Don't have an account? Sign up
+             </a>
+          )}
           
           <p className="text-sm text-gray-600">
             {isSignUp ? "For demo purposes, any details will instantly create an account!" : "For demo purposes, any email/password works!"}
